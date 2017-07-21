@@ -4,11 +4,12 @@ const topojson = require('topojson')
 const rp = require('request')
 const debug = require('debug')('atlas')
 
+const atlasHome = '.atlasfiles'
 let jsonString = ''
 let list = ''
 
 function getGeo (name) {
-  return shapefile.open(`files/${name}.shp`)
+  return shapefile.open(`${atlasHome}/${name}.shp`)
           .then(shape => {
             jsonString += `{"type":"FeatureCollection","bbox":${JSON.stringify(shape.bbox)}`
             jsonString += ',"features":['
@@ -57,14 +58,16 @@ function magic ({ name, listfile, filterkey }) {
 
   debug('list:', list)
 
-  if (fs.existsSync(`files/${name}.shp`)) {
+  if (fs.existsSync(`${atlasHome}/${name}.shp`)) {
     debug('skip download!')
     shp2topo(name)
     return
   }
-
-  const fileStreamDbf = fs.createWriteStream(`files/${name}.dbf`)
-  const fileStreamShp = fs.createWriteStream(`files/${name}.shp`)
+  
+  fs.mkdirSync(atlasHome)
+  
+  const fileStreamDbf = fs.createWriteStream(`${atlasHome}/${name}.dbf`)
+  const fileStreamShp = fs.createWriteStream(`${atlasHome}/${name}.shp`)
 
   fileStreamShp.on('finish', () => {
     // console.log('downloads done!');

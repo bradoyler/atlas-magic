@@ -4,7 +4,7 @@ const fs = require('fs')
 const argv = require('yargs').argv
 const magic = require('../')
 
-console.log('>> args:', argv)
+// console.log('>> args:', argv)
 
 const {
   filterkey = 'FIPS',

@@ -5,8 +5,8 @@ const argv = require('yargs').argv
 const magic = require('../')
 
 const atlasList = [
-  'demo',
-  'test',
+  '404-test',
+  'us-rivers',
   'us-counties',
   'us-cities',
 ]
@@ -16,11 +16,12 @@ const {
   _ : commands,
   filterkey = 'FIPS',
   listfile,
-  outputfile,
-  simplify,
+  output,
+  simplify = 0.0006,
+  max = 100000
 } = argv
 
-// const outputfile = argv.out
+// const output = argv.out
 const command = commands[0]
 
 function run() {
@@ -34,7 +35,7 @@ function run() {
     return
   }
 
-  magic({ command, listfile, filterkey, outputfile })  
+  magic({ command, listfile, filterkey, output, max, simplify })  
 }
 
 run()

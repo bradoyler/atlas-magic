@@ -8,7 +8,7 @@ This tool will:
 
 ### Run it
 ```
-npx atlas-magic > newtopojson.json
+npx atlas-magic us-rivers > newtopojson.json
 ```
 
 Watch the magic happen...
@@ -24,8 +24,20 @@ __[options...]__
 
 | key | default | example
 |--------|--------|---------
-| listfile= |  | `myFIPScodes.csv` (used for filtering)
-| outputfile= |  | `path/to/output.json`
-| filterkey= | `FIPS` | &nbsp;
-| simplify= | `0.006` | &nbsp;
+| --listfile |  | `myFIPScodes.csv` (used for filtering)
+| --output |  | `path/to/output.json`
+| --filterkey | `FIPS` | &nbsp;
+| --max | `100000` | for population (when applied)
+| --simplify | `0.006` | &nbsp;
 
+
+### Examples
+
+##### US Cities with population over 250k
+`$ atlas-magic us-cities --max 250000 --output cities_over_250k.json`
+
+##### US Counties filtered by a newline delimited list
+`$ atlas-magic us-counties --listfile fips_codes.csv --output my-us-counties.json`
+
+##### US Rivers
+`$ atlas-magic us-rivers --output us-rivers.json`

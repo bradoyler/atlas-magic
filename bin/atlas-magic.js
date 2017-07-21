@@ -16,7 +16,7 @@ const {
 
 function run() {
   if (name !== 'counties') {
-    console.log(`Sorry, don't support a ${atlastype} atlas yet`)
+    console.log(`Sorry, don't have a ${atlastype} atlas yet`)
     return
   }
 

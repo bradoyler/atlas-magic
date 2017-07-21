@@ -3,6 +3,10 @@
   "version": "0.0.3",
   "description": "a magic CLI for making GIS data files (topojson, geojson)",
   "main": "index.js",
+  "repository": {
+		"type": "git",
+		"url": "http://github.com/bradoyler/atlas-magic.git"
+	},
   "bin": {
     "atlas-magic": "./bin/atlas-magic.js"
   },

@@ -8,8 +8,8 @@ const atlasHome = '.atlasfiles'
 let jsonString = ''
 let list = ''
 
-function getGeo (name) {
-  return shapefile.open(`${atlasHome}/${name}.shp`)
+function getGeo ({ command, listfile, filterkey, outputfile }) {
+  return shapefile.open(`${atlasHome}/${command}.shp`)
           .then(shape => {
             jsonString += `{"type":"FeatureCollection","bbox":${JSON.stringify(shape.bbox)}`
             jsonString += ',"features":['
@@ -38,52 +38,60 @@ function getGeo (name) {
           .catch(error => console.error(error.stack))
 }
 
-function shp2topo (name) {
-  getGeo(name)
+function shp2topo ({ command, listfile, filterkey, outputfile }) {
+  getGeo({ command, listfile, filterkey, outputfile })
   .then(geoJson => {
     debug('geoJson::', geoJson.length)
     const topo = topojson.topology({ counties: JSON.parse(geoJson) })
-    const ptopo = topojson.presimplify(topo);
-    const topology = topojson.simplify(ptopo, .0006); // 1e-6
-    // fs.writeFileSync(`${name}.json`, JSON.stringify(topo))
-    console.log(JSON.stringify(topology))
+    const ptopo = topojson.presimplify(topo)
+    const topology = topojson.simplify(ptopo, 0.0006) // 1e-4
+    if (outputfile) {
+      fs.writeFileSync(`${outputfile}.json`, JSON.stringify(topo))
+    } else {
+      console.log(JSON.stringify(topology))
+    }
   })
 }
 
-function magic ({ name, listfile, filterkey }) {
-  list = fs.readFileSync(listfile).toString().split('\n').join('|')
-  if (list.charAt(list.length - 1) === '|') {
-    list = list.slice(0, -1)
+function magic ({ command, listfile, filterkey, outputfile }) {
+  if (listfile) { // use a filterlist
+    list = fs.readFileSync(listfile).toString().split('\n').join('|')
+    if (list.charAt(list.length - 1) === '|') {
+      list = list.slice(0, -1)
+    }
   }
 
   debug('list:', list)
 
-  if (fs.existsSync(`${atlasHome}/${name}.shp`)) {
+  if (fs.existsSync(`${atlasHome}/${command}.shp`)) {
     debug('skip download!')
-    shp2topo(name)
+    shp2topo({ command, listfile, filterkey, outputfile })
     return
   }
-  
-  fs.mkdirSync(atlasHome)
-  
-  const fileStreamDbf = fs.createWriteStream(`${atlasHome}/${name}.dbf`)
-  const fileStreamShp = fs.createWriteStream(`${atlasHome}/${name}.shp`)
 
-  fileStreamShp.on('finish', () => {
-    // console.log('downloads done!');
-    shp2topo(name)
-  })
+  if (!fs.existsSync(atlasHome)) {
+    fs.mkdirSync(atlasHome)
+  }
 
-  fileStreamDbf.on('finish', () => {
-    // console.log('dbf download done!');
-    rp.get(`http://s3.amazonaws.com/atlas-shapes/${name}.shp`)
-      .on('error', console.log)
-      .pipe(fileStreamShp)
-  })
-
-  rp.get(`http://s3.amazonaws.com/atlas-shapes/${name}.dbf`)
+  rp.get(`http://s3.amazonaws.com/atlas-shapes/${command}.dbf`)
+    .on('response', function (res) {
+      if (res.statusCode !== 200) {
+        throw Error(`dbf: ${res.statusMessage} ${res.statusCode}`)
+      }
+      const fileStreamDbf = fs.createWriteStream(`${atlasHome}/${command}.dbf`)
+      fileStreamDbf.on('finish', () => {
+        const fileStreamShp = fs.createWriteStream(`${atlasHome}/${command}.shp`)
+        fileStreamShp.on('finish', () => {
+          // download complete
+          shp2topo({ command, listfile, filterkey, outputfile })
+        })
+        rp.get(`http://s3.amazonaws.com/atlas-shapes/${command}.shp`)
+          .on('error', console.log)
+          .pipe(fileStreamShp)
+      })
+      this.pipe(fileStreamDbf)
+    })
     .on('error', console.log)
-    .pipe(fileStreamDbf)
 }
 
 module.exports = magic

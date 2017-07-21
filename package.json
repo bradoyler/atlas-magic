@@ -8,7 +8,7 @@
     "url": "http://github.com/bradoyler/atlas-magic.git"
   },
   "bin": {
-    "atlas-magic": "./bin/atlas-magic.js"
+    "atlas-magic": "./bin/cli.js"
   },
   "scripts": {
     "test": "standard --verbose && mocha test",

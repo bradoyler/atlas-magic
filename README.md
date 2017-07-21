@@ -34,10 +34,16 @@ __[options...]__
 ### Examples
 
 ##### US Cities with population over 250k
-`$ atlas-magic us-cities --max 250000 --output cities_over_250k.json`
+```sh
+$ atlas-magic us-cities --max 250000 --output cities_over_250k.json
+```
 
 ##### US Counties filtered by a newline delimited list
-`$ atlas-magic us-counties --listfile fips_codes.csv --output my-us-counties.json`
+```sh
+$ atlas-magic us-counties --listfile fips_codes.csv --output my-us-counties.json
+```
 
 ##### US Rivers
-`$ atlas-magic us-rivers --output us-rivers.json`
+```
+$ atlas-magic us-rivers --output us-rivers.json
+```

@@ -1,0 +1,26 @@
+{
+  "name": "atlas-magic",
+  "version": "0.0.1",
+  "description": "a magic CLI for making GIS data files (topojson, geojson)",
+  "main": "index.js",
+  "bin": {
+    "atlas-magic": "./bin/atlas-magic.js"
+  },
+  "scripts": {
+    "test": "standard --verbose && mocha test",
+    "lint": "standard",
+    "format": "standard --fix"
+  },
+  "author": "Brad Oyler",
+  "license": "MIT",
+  "dependencies": {
+    "debug": "2.6.8",
+    "request": "2.81.0",
+    "shapefile": "0.6.2",
+    "topojson": "3.0.0",
+    "yargs": "8.0.2"
+  },
+  "devDependencies": {
+    "standard": "10.0.2"
+  }
+}

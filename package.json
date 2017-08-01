@@ -1,6 +1,6 @@
 {
   "name": "atlas-magic",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "a magic CLI for making GIS data files (topojson, geojson)",
   "main": "index.js",
   "repository": {

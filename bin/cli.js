@@ -9,6 +9,8 @@ const atlasList = [
   'us-rivers',
   'us-counties',
   'us-cities',
+  'us-states',
+  'merge'
 ]
 // console.log('>> args:', argv._)
 
@@ -35,7 +37,7 @@ function run() {
     return
   }
 
-  magic({ command, listfile, filterkey, output, max, simplify })  
+  magic({ command, listfile, filterkey, output, max, simplify })
 }
 
 run()

@@ -11,12 +11,11 @@ let list = ''
 
 function filterByProps (result) {
   // debug('properties >>', result.value.properties)
-
   // us-counties
   if (settings.command === 'us-counties') {
     if (!list) {
-      console.log('Please supply a listfile for us-counties')
-      return ''
+      // console.log('Please supply a listfile for us-counties')
+      return `${JSON.stringify(result.value)},`
     }
     // has filter
     const prop = 'FIPS' || settings.filterkey
@@ -39,6 +38,7 @@ function filterByProps (result) {
 function getGeo () {
   return shapefile.open(`${atlasHome}/${settings.command}.shp`)
           .then(shape => {
+            // debug('>> shape', shape)
             jsonString += `{"type":"FeatureCollection","bbox":${JSON.stringify(shape.bbox)}`
             jsonString += ',"features":['
             return shape.read()
@@ -57,16 +57,18 @@ function getGeo () {
                       json += ']}\n'
                       return json
                     })
+                    .catch(console.error)
                 })
           })
-          .catch(error => console.error(error.stack))
+          .catch(console.error)
 }
 
 function shp2topo () {
-  getGeo()
+  return getGeo()
   .then(geoJson => {
     debug('geoJson.length::', geoJson.length)
     debug('settings::', settings)
+    // debug('geo', geoJson)
     const topo = topojson.topology({ counties: JSON.parse(geoJson) })
     const ptopo = topojson.presimplify(topo)
     const topology = topojson.simplify(ptopo, settings.simplify) // 1e-4
@@ -91,37 +93,33 @@ function magic ({ command, listfile, filterkey, output, simplify, max }) {
     }
   }
 
-  // debug('list:', list)
-
-  if (fs.existsSync(`${atlasHome}/${command}.shp`)) {
-    debug('skip download!')
-    shp2topo()
-    return
-  }
-
   if (!fs.existsSync(atlasHome)) {
     fs.mkdirSync(atlasHome)
   }
 
-  rp.get(`http://s3.amazonaws.com/atlas-shapes/${command}.dbf`)
-    .on('response', function (res) {
-      if (res.statusCode !== 200) {
-        throw Error(`dbf: ${res.statusMessage} ${res.statusCode}`)
-      }
-      const fileStreamDbf = fs.createWriteStream(`${atlasHome}/${command}.dbf`)
-      fileStreamDbf.on('finish', () => {
-        const fileStreamShp = fs.createWriteStream(`${atlasHome}/${command}.shp`)
-        fileStreamShp.on('finish', () => {
-          // download complete
-          shp2topo()
-        })
-        rp.get(`http://s3.amazonaws.com/atlas-shapes/${command}.shp`)
-          .on('error', console.log)
-          .pipe(fileStreamShp)
-      })
-      this.pipe(fileStreamDbf)
+  if (fs.existsSync(`${atlasHome}/${command}.shp`)) {
+    debug('skip download!')
+    shp2topo()
+    .catch(console.error)
+    return
+  }
+
+  function writeFile (name, ext) {
+    return new Promise((resolve, reject) => {
+      const fileStream = fs.createWriteStream(`${atlasHome}/${name}.${ext}`)
+      fileStream.on('finish', resolve)
+      .on('error', reject)
+
+      rp.get(`http://s3.amazonaws.com/atlas-shapes/${name}.${ext}`)
+        .on('error', reject)
+        .pipe(fileStream)
     })
-    .on('error', console.log)
+  }
+
+  writeFile(command, 'dbf')
+  .then(() => writeFile(command, 'shp'))
+  .then(() => shp2topo())
+  .catch(console.error)
 }
 
 module.exports = magic

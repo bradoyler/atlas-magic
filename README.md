@@ -47,3 +47,8 @@ $ atlas-magic us-counties --listfile fips_codes.csv --output my-us-counties.json
 ```
 $ atlas-magic us-rivers --output us-rivers.json
 ```
+
+##### US States
+```
+$ atlas-magic us-states > us-states.json
+```

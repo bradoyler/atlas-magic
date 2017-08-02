@@ -2,6 +2,7 @@ const fs = require('fs')
 const rp = require('request')
 const debug = require('debug')('atlas')
 const atlasHome = '.atlasfiles'
+const atlasCDN = 'http://s3.amazonaws.com/atlas-shapes'
 
 function downloadFile (name) {
   if (fs.existsSync(`${atlasHome}/${name}`)) {
@@ -11,10 +12,12 @@ function downloadFile (name) {
 
   return new Promise((resolve, reject) => {
     const fileStream = fs.createWriteStream(`${atlasHome}/${name}`)
-    fileStream.on('finish', resolve)
+    fileStream.on('finish', () => {
+      resolve()
+    })
     .on('error', reject)
 
-    rp.get(`http://s3.amazonaws.com/atlas-shapes/${name}`)
+    rp.get(`${atlasCDN}/${name}`)
       .on('error', reject)
       .pipe(fileStream)
   })

@@ -18,35 +18,33 @@ Watch the magic happen...
 <a name="atlas-magic" href="#atlas-magic">#</a><b>atlas-magic</b> &lt;<i>command</i>&gt; [<i>options…</i>]  [`<>`](https://github.com/bradoyler/atlas-magic/blob/master/bin/atlas-magic.js "Source")
 
 where __&lt;command&gt;__ is:  
-`us-counties, us-cities`
+`us-counties, us-cities, us-rivers, us-states, combine-topo`
 
 __[options...]__
 
 | key | default | example
 |--------|--------|---------
 | --listfile |  | `myFIPScodes.csv` (used for filtering)
-| --output |  | `path/to/output.json`
 | --filterkey | `FIPS` | &nbsp;
 | --max | `100000` | for population (when applied)
 | --simplify | `0.006` | &nbsp;
 | --quantize | `1e6` | &nbsp;
 
-
 ### Examples
 
 ##### US Cities with population over 250k
 ```sh
-$ atlas-magic us-cities --max 250000 --output cities_over_250k.json
+$ atlas-magic us-cities --max 250000 > cities_over_250k.json
 ```
 
 ##### US Counties filtered by a newline delimited list
 ```sh
-$ atlas-magic us-counties --listfile fips_codes.csv --output my-us-counties.json
+$ atlas-magic us-counties --listfile fips_codes.csv > my-us-counties.json
 ```
 
 ##### US Rivers
 ```sh
-$ atlas-magic us-rivers --output us-rivers.json
+$ atlas-magic us-rivers > us-rivers.json
 ```
 
 ##### US States

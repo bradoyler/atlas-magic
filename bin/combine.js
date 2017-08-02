@@ -1,20 +1,26 @@
 const fs = require('fs')
+const path = require('path')
 const topojson = require('topojson')
 const io = require('./io')
 const debug = require('debug')('atlas')
-const atlasHome = '.atlasfiles'
+// const atlasHome = '.atlasfiles'
 
 function combineGeo2topo ({ output, simplify, quantize }, fileNameA, fileNameB) {
   debug('combine', { simplify, quantize }, fileNameA, fileNameB)
-  const fileA = fs.readFileSync(`${atlasHome}/${fileNameA}`, 'utf8')
-  const fileB = fs.readFileSync(`${atlasHome}/${fileNameB}`, 'utf8')
-  const objects = {}
-  objects[fileNameA] = JSON.parse(fileA)
-  objects[fileNameB] = JSON.parse(fileB)
-  const topo = topojson.topology(objects, quantize)
-  const ptopo = topojson.presimplify(topo)
-  const topology = topojson.simplify(ptopo, simplify) // 1e-4
-  const jsonString = JSON.stringify(topology)
+  const fileA = fs.readFileSync(fileNameA, 'utf8')
+  const fileB = fs.readFileSync(fileNameB, 'utf8')
+  const jsonA = JSON.parse(fileA)
+  const jsonB = JSON.parse(fileB)
+  const nameA = path.basename(fileNameA, path.extname(fileNameA))
+  const nameB = path.basename(fileNameB, path.extname(fileNameB))
+  const geoJsonA = topojson.feature(jsonA, jsonA.objects[nameA])
+  const geoJsonB = topojson.feature(jsonB, jsonB.objects[nameB])
+
+  const geoObjects = {}
+  geoObjects[nameA] = geoJsonA
+  geoObjects[nameB] = geoJsonB
+  const pretopo = topojson.presimplify(topojson.topology(geoObjects, quantize))
+  const jsonString = JSON.stringify(topojson.simplify(pretopo, simplify))
 
   if (output) {
     io.writeFile(output, jsonString)

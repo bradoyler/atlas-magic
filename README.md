@@ -56,7 +56,7 @@ $ atlas-magic us-states > us-states.json
 
 ##### Combine topologies (not merge)
 ```sh
-$ atlas-magic us-states
-$ atlas-magic us-counties --listfile fips_codes.csv
-$ atlas-magic combine-topo us-states us-counties > us-states-with-counties.json
+$ atlas-magic us-states > us-states.json
+$ atlas-magic us-counties --listfile fips_codes.csv > us-counties.json
+$ atlas-magic combine-topo us-states.json us-counties.json > us-states-with-counties.json
 ```

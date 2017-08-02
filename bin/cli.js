@@ -19,7 +19,7 @@ let {
   filterkey = 'FIPS',
   listfile,
   output,
-  quantization = '1e6',
+  quantize = '1e6',
   simplify = 0.0006,
   max = 100000
 } = argv
@@ -46,7 +46,7 @@ function run() {
     if (!argv.simplify) {
       simplify = 0.005
     }
-    combine({ output, simplify, quantize }, `${commands[1]}.geojson`, `${commands[2]}.geojson`);
+    combine({ output, simplify, quantize }, `${commands[1]}`, `${commands[2]}`);
     return
   }
 

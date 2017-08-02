@@ -30,7 +30,7 @@ function filterByProps (result) {
   return true
 }
 
-function buildFeatureCollection (source, out) {
+function buildGeoJson (source) {
   const geoObject = {
     type: 'FeatureCollection',
     bbox: source.bbox,
@@ -44,41 +44,35 @@ function buildFeatureCollection (source, out) {
     return source.read().then(repeat)
   }).then(function () {
     // todo: allow out to stdout
-    out.write(JSON.stringify(geoObject))
-    out.end()
+    return geoObject
   })
 }
 
 function shp2geo ({ command }) {
-  const writeStream = fs.createWriteStream(`${atlasHome}/${command}.geojson`).on('error', io.handleEpipe)
+  // const writeStream = fs.createWriteStream(`${atlasHome}/${command}.geojson`).on('error', io.handleEpipe)
   return shapefile.open(`${atlasHome}/${command}.shp`)
-          .then((source) => buildFeatureCollection(source, writeStream))
-          .catch(io.handleError)
+          .then((source) => buildGeoJson(source))
+          .catch(console.error)
 }
 
-function geo2topo ({ command, output, simplify, quantization }) {
-  const geoJsonString = fs.readFileSync(`${atlasHome}/${command}.geojson`, 'utf8')
-  const geoJson = JSON.parse(geoJsonString)
-  debug('geo2topo.settings::', { command, output, simplify, quantization })
-  const topoObject = {}
-  topoObject[settings.command] = geoJson
-  const topo = topojson.topology(topoObject, quantization)
-  const ptopo = topojson.presimplify(topo)
-  const topology = topojson.simplify(ptopo, simplify) // 1e-4
-  const jsonString = JSON.stringify(topology)
+function geo2topo (geoJson, { command, output, simplify, quantize }) {
+  debug('geo2topo.settings::', { command, output, simplify, quantize })
+  const geoObjects = {}
+  geoObjects[settings.command] = geoJson
+  const pretopo = topojson.presimplify(topojson.topology(geoObjects, quantize))
+  const jsonString = JSON.stringify(topojson.simplify(pretopo, simplify))
   if (output) {
-    debug('topojson.length::', jsonString.length)
+    debug('topojson.length::', Math.floor(jsonString.length / 1000) + 'k')
     fs.writeFileSync(`${output}`, jsonString)
   } else {
-    debug('topojson.length::', jsonString.length)
+    debug('topojson.length::', Math.floor(jsonString.length / 1000) + 'k')
     console.log(jsonString)
-    // io.writeFile(`${command}.json`, jsonString)
   }
 }
 
-function run ({ command, listfile, filterkey, output, simplify, quantization, max }) {
+function run ({ command, listfile, filterkey, output, simplify, quantize, max }) {
   // set options
-  settings = { command, listfile, filterkey, output, simplify, quantization, max }
+  settings = { command, listfile, filterkey, output, simplify, quantize, max }
 
   if (listfile) { // use a filterlist
     list = fs.readFileSync(listfile).toString().split('\n').join('|')
@@ -94,7 +88,7 @@ function run ({ command, listfile, filterkey, output, simplify, quantization, ma
   io.downloadFile(`${command}.dbf`)
   .then(() => io.downloadFile(`${command}.shp`))
   .then(() => shp2geo(settings))
-  .then(() => geo2topo(settings))
+  .then((geoJson) => geo2topo(geoJson, settings))
   .catch(console.error)
 }
 

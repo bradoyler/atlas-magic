@@ -6,31 +6,23 @@ const io = require('./bin/io')
 
 const atlasHome = '.atlasfiles'
 let settings = {}
-// let jsonString = ''
 let list = ''
 
-function filterByProps (result) {
+function pushCheck (result) {
   // us-counties
   if (list && settings.command === 'us-counties') {
-    // has filter
     const prop = 'FIPS' || settings.filterkey
-    if (list && result.value.properties[prop].match(list)) {
-      return true
-    }
-    return false
+    return (list && result.value.properties[prop].match(list))
   }
-
+  // us-cities
   if (settings.command === 'us-cities') {
     const prop = 'POP_2010' || settings.filterkey
-    if (result.value.properties[prop] > settings.max) {
-      return true
-    }
-    return false
+    return (result.value.properties[prop] > settings.max)
   }
   return true
 }
 
-function buildGeoJson (source) {
+function buildGeoJsonFromShp (source) {
   const geoObject = {
     type: 'FeatureCollection',
     bbox: source.bbox,
@@ -38,20 +30,18 @@ function buildGeoJson (source) {
   }
   return source.read().then(function repeat (result) {
     if (result.done) return
-    if (filterByProps(result)) {
+    if (pushCheck(result)) {
       geoObject.features.push(result.value)
     }
     return source.read().then(repeat)
   }).then(function () {
-    // todo: allow out to stdout
     return geoObject
   })
 }
 
 function shp2geo ({ command }) {
-  // const writeStream = fs.createWriteStream(`${atlasHome}/${command}.geojson`).on('error', io.handleEpipe)
   return shapefile.open(`${atlasHome}/${command}.shp`)
-          .then((source) => buildGeoJson(source))
+          .then((source) => buildGeoJsonFromShp(source))
           .catch(console.error)
 }
 

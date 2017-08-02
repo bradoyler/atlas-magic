@@ -1,6 +1,6 @@
 const fs = require('fs')
 const rp = require('request')
-const debug = require('debug')('atlas:io')
+const debug = require('debug')('atlas')
 const atlasHome = '.atlasfiles'
 
 function downloadFile (name) {

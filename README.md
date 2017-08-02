@@ -29,6 +29,7 @@ __[options...]__
 | --filterkey | `FIPS` | &nbsp;
 | --max | `100000` | for population (when applied)
 | --simplify | `0.006` | &nbsp;
+| --quantize | `1e6` | &nbsp;
 
 
 ### Examples
@@ -44,11 +45,18 @@ $ atlas-magic us-counties --listfile fips_codes.csv --output my-us-counties.json
 ```
 
 ##### US Rivers
-```
+```sh
 $ atlas-magic us-rivers --output us-rivers.json
 ```
 
 ##### US States
-```
+```sh
 $ atlas-magic us-states > us-states.json
+```
+
+##### Combine topologies (not merge)
+```sh
+$ atlas-magic us-states
+$ atlas-magic us-counties --listfile fips_codes.csv
+$ atlas-magic combine-topo us-states us-counties > us-states-with-counties.json
 ```

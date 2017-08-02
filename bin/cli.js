@@ -3,22 +3,23 @@
 const fs = require('fs')
 const argv = require('yargs').argv
 const magic = require('../')
+const combine = require('./combine')
 
-const atlasList = [
+const commandList = [
   '404-test',
   'us-rivers',
   'us-counties',
   'us-cities',
   'us-states',
-  'merge'
+  'combine-topo'
 ]
-// console.log('>> args:', argv._)
 
-const {
+let {
   _ : commands,
   filterkey = 'FIPS',
   listfile,
   output,
+  quantization = '1e6',
   simplify = 0.0006,
   max = 100000
 } = argv
@@ -27,8 +28,8 @@ const {
 const command = commands[0]
 
 function run() {
-  if (atlasList.indexOf(command) < -1) {
-    console.log(`Sorry, don't have a ${command} atlas yet`)
+  if (commandList.indexOf(command) === -1) {
+    console.log(` '${command}' is not a supported command`)
     return
   }
 
@@ -37,7 +38,19 @@ function run() {
     return
   }
 
-  magic({ command, listfile, filterkey, output, max, simplify })
+  if (command === 'us-states' && !argv.simplify) {
+    simplify = 0.005
+  }
+
+  if (command === 'combine-topo') {
+    if (!argv.simplify) {
+      simplify = 0.005
+    }
+    combine({ output, simplify, quantize }, `${commands[1]}.geojson`, `${commands[2]}.geojson`);
+    return
+  }
+
+  magic.run({ command, listfile, filterkey, output, max, simplify, quantize })
 }
 
 run()

@@ -1,90 +1,84 @@
 const fs = require('fs')
 const shapefile = require('shapefile')
 const topojson = require('topojson')
-const rp = require('request')
 const debug = require('debug')('atlas')
+const io = require('./bin/io')
 
 const atlasHome = '.atlasfiles'
 let settings = {}
-let jsonString = ''
+// let jsonString = ''
 let list = ''
 
 function filterByProps (result) {
-  // debug('properties >>', result.value.properties)
   // us-counties
-  if (settings.command === 'us-counties') {
-    if (!list) {
-      // console.log('Please supply a listfile for us-counties')
-      return `${JSON.stringify(result.value)},`
-    }
+  if (list && settings.command === 'us-counties') {
     // has filter
     const prop = 'FIPS' || settings.filterkey
     if (list && result.value.properties[prop].match(list)) {
-      return `${JSON.stringify(result.value)},`
+      return true
     }
-    return ''
+    return false
   }
 
   if (settings.command === 'us-cities') {
     const prop = 'POP_2010' || settings.filterkey
     if (result.value.properties[prop] > settings.max) {
-      return `${JSON.stringify(result.value)},`
+      return true
     }
-    return ''
+    return false
   }
-  return `${JSON.stringify(result.value)},`
+  return true
 }
 
-function getGeo () {
-  return shapefile.open(`${atlasHome}/${settings.command}.shp`)
-          .then(shape => {
-            // debug('>> shape', shape)
-            jsonString += `{"type":"FeatureCollection","bbox":${JSON.stringify(shape.bbox)}`
-            jsonString += ',"features":['
-            return shape.read()
-                .then(function (result) {
-                  if (result.done) return
-                  return shape.read()
-                    .then(function appendFeature (result) {
-                      if (result.done) {
-                        return
-                      }
-                      jsonString += filterByProps(result)
-                      return shape.read().then(appendFeature)
-                    })
-                    .then(() => {
-                      let json = jsonString.slice(0, -1)
-                      json += ']}\n'
-                      return json
-                    })
-                    .catch(console.error)
-                })
-          })
-          .catch(console.error)
-}
-
-function shp2topo () {
-  return getGeo()
-  .then(geoJson => {
-    debug('geoJson.length::', geoJson.length)
-    debug('settings::', settings)
-    // debug('geo', geoJson)
-    const topo = topojson.topology({ counties: JSON.parse(geoJson) })
-    const ptopo = topojson.presimplify(topo)
-    const topology = topojson.simplify(ptopo, settings.simplify) // 1e-4
-    if (settings.output) {
-      const jsonString = JSON.stringify(topology)
-      debug('topojson.length::', jsonString.length)
-      fs.writeFileSync(`${settings.output}`, jsonString)
-    } else {
-      console.log(JSON.stringify(topology))
+function buildFeatureCollection (source, out) {
+  const geoObject = {
+    type: 'FeatureCollection',
+    bbox: source.bbox,
+    features: []
+  }
+  return source.read().then(function repeat (result) {
+    if (result.done) return
+    if (filterByProps(result)) {
+      geoObject.features.push(result.value)
     }
+    return source.read().then(repeat)
+  }).then(function () {
+    // todo: allow out to stdout
+    out.write(JSON.stringify(geoObject))
+    out.end()
   })
 }
 
-function magic ({ command, listfile, filterkey, output, simplify, max }) {
+function shp2geo ({ command }) {
+  const writeStream = fs.createWriteStream(`${atlasHome}/${command}.geojson`).on('error', io.handleEpipe)
+  return shapefile.open(`${atlasHome}/${command}.shp`)
+          .then((source) => buildFeatureCollection(source, writeStream))
+          .catch(io.handleError)
+}
+
+function geo2topo ({ command, output, simplify, quantization }) {
+  const geoJsonString = fs.readFileSync(`${atlasHome}/${command}.geojson`, 'utf8')
+  const geoJson = JSON.parse(geoJsonString)
+  debug('geo2topo.settings::', { command, output, simplify, quantization })
+  const topoObject = {}
+  topoObject[settings.command] = geoJson
+  const topo = topojson.topology(topoObject, quantization)
+  const ptopo = topojson.presimplify(topo)
+  const topology = topojson.simplify(ptopo, simplify) // 1e-4
+  const jsonString = JSON.stringify(topology)
+  if (output) {
+    debug('topojson.length::', jsonString.length)
+    fs.writeFileSync(`${output}`, jsonString)
+  } else {
+    debug('topojson.length::', jsonString.length)
+    console.log(jsonString)
+    // io.writeFile(`${command}.json`, jsonString)
+  }
+}
+
+function run ({ command, listfile, filterkey, output, simplify, quantization, max }) {
   // set options
-  settings = { command, listfile, filterkey, output, simplify, max }
+  settings = { command, listfile, filterkey, output, simplify, quantization, max }
 
   if (listfile) { // use a filterlist
     list = fs.readFileSync(listfile).toString().split('\n').join('|')
@@ -97,29 +91,15 @@ function magic ({ command, listfile, filterkey, output, simplify, max }) {
     fs.mkdirSync(atlasHome)
   }
 
-  if (fs.existsSync(`${atlasHome}/${command}.shp`)) {
-    debug('skip download!')
-    shp2topo()
-    .catch(console.error)
-    return
-  }
-
-  function writeFile (name, ext) {
-    return new Promise((resolve, reject) => {
-      const fileStream = fs.createWriteStream(`${atlasHome}/${name}.${ext}`)
-      fileStream.on('finish', resolve)
-      .on('error', reject)
-
-      rp.get(`http://s3.amazonaws.com/atlas-shapes/${name}.${ext}`)
-        .on('error', reject)
-        .pipe(fileStream)
-    })
-  }
-
-  writeFile(command, 'dbf')
-  .then(() => writeFile(command, 'shp'))
-  .then(() => shp2topo())
+  io.downloadFile(`${command}.dbf`)
+  .then(() => io.downloadFile(`${command}.shp`))
+  .then(() => shp2geo(settings))
+  .then(() => geo2topo(settings))
   .catch(console.error)
 }
 
-module.exports = magic
+module.exports = {
+  run,
+  shp2geo,
+  geo2topo
+}
